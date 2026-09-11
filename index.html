@@ -37,7 +37,7 @@
 </head>
 <body class="text-zinc-100 min-h-screen selection:bg-indigo-500/30">
 
-    <!-- Background Audio Element  -->
+    <!-- Background Audio Element -->
     <audio id="bg-music" src="./Background.mp3" loop preload="auto"></audio>
 
     <!-- Floating Audio Control Button -->
@@ -75,6 +75,7 @@
 
     <!-- Masonry Gallery Container -->
     <main class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+        <!-- CSS Columns for Masonry (1 col mobile, 2 tablet, 3 desktop, 4 large screens) -->
         <div class="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
             
             <!-- Image 1 -->
@@ -173,9 +174,11 @@
 
     <!-- Fullscreen Lightbox Modal -->
     <div id="lightbox" class="fixed inset-0 z-[100] hidden bg-black/95 backdrop-blur-md flex items-center justify-center opacity-0 transition-opacity duration-300" onclick="closeLightbox()">
+        <!-- Close Button -->
         <button class="absolute top-8 right-8 text-white/70 hover:text-white transition-colors p-2 bg-white/10 hover:bg-white/20 rounded-full" onclick="closeLightbox()">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
+        <!-- Lightbox Image -->
         <img id="lightbox-img" src="" alt="Expanded Image" class="max-w-[95vw] max-h-[90vh] object-contain rounded-lg shadow-2xl scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
     </div>
 
@@ -187,22 +190,27 @@
         function openLightbox(imageSrc) {
             lightboxImg.src = imageSrc;
             lightbox.classList.remove('hidden');
+            
+            // Trigger reflow to allow transition to play
             void lightbox.offsetWidth; 
+            
             lightbox.classList.remove('opacity-0');
             lightboxImg.classList.remove('scale-95');
-            document.body.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
         }
 
         function closeLightbox() {
             lightbox.classList.add('opacity-0');
             lightboxImg.classList.add('scale-95');
+            
             setTimeout(() => {
                 lightbox.classList.add('hidden');
-                lightboxImg.src = '';
-                document.body.style.overflow = 'auto';
+                lightboxImg.src = ''; // Clear image
+                document.body.style.overflow = 'auto'; // Restore scrolling
             }, 300);
         }
 
+        // Add keyboard support to close lightbox with Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) {
                 closeLightbox();
@@ -216,7 +224,7 @@
         const iconMuted = document.getElementById('icon-muted');
         const musicStatusText = document.getElementById('music-status-text');
 
-        // Moderate volume suitable for ambient background
+        // Moderate ambient volume
         bgMusic.volume = 0.4;
 
         function updateAudioUI(isPlaying) {
@@ -245,13 +253,30 @@
             toggleMusic();
         });
 
-        // Optional: Auto-start on the user's first click anywhere on the page
-        const startOnFirstGesture = () => {
+        // --- Trigger Play on First Gesture / Scroll ---
+        const triggerEvents = ['scroll', 'wheel', 'touchmove', 'touchstart', 'click'];
+
+        const triggerPlayOnGesture = () => {
             if (bgMusic.paused) {
-                bgMusic.play().then(() => updateAudioUI(true)).catch(() => {});
+                bgMusic.play()
+                    .then(() => {
+                        updateAudioUI(true);
+                        // Clean up all listeners once playing successfully
+                        triggerEvents.forEach(evt => {
+                            window.removeEventListener(evt, triggerPlayOnGesture);
+                        });
+                    })
+                    .catch(() => {
+                        // Suppress warnings if strict browser autoplay blocked wheel scrolls;
+                        // remaining listeners will catch touch or click gestures.
+                    });
             }
         };
-        window.addEventListener('click', startOnFirstGesture, { once: true });
+
+        // Attach listeners across scrolling and interactive events
+        triggerEvents.forEach(evt => {
+            window.addEventListener(evt, triggerPlayOnGesture, { passive: true });
+        });
     </script>
 </body>
 </html>
